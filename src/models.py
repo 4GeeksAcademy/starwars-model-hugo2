@@ -48,14 +48,6 @@ class Favourite(db.Model):
     planet: Mapped[Optional["Planet"]] = relationship("Planet")
     vehicle: Mapped[Optional["Vehicle"]] = relationship("Vehicle")
 
-    # __table_args__ = (
-    #     CheckConstraint(
-    #         # https://stackoverflow.com/questions/20943777/sqlalchemy-any-constraint-to-check-one-of-the-two-columns-is-not-null
-    #         "(character_id IS NOT NULL) + (planet_id IS NOT NULL) + (vehicle_id IS NOT NULL) = 1",
-    #         name="ck_favourite_exactly_one_target",
-    #     ),
-    # )
-
     __table_args__ = (
         CheckConstraint(
             "(CASE WHEN character_id IS NOT NULL THEN 1 ELSE 0 END + "
@@ -77,8 +69,7 @@ class Planet(db.Model):
 
     character: Mapped[Optional["Character"]] = relationship(
         "Character",
-        back_populates="homeland",
-        uselist=False,
+        back_populates="homeland"
     )
 
 
@@ -91,7 +82,7 @@ class Character(db.Model):
     skin_color: Mapped[Optional[str]] = mapped_column(String(50))
     hair_color: Mapped[Optional[str]] = mapped_column(String(50))
     planet_id: Mapped[int] = mapped_column(
-        ForeignKey("planet.id"), nullable=False, unique=True)
+        ForeignKey("planet.id"), nullable=False)
 
     homeland: Mapped["Planet"] = relationship(
         "Planet", back_populates="character", uselist=False)
