@@ -24,9 +24,13 @@ class User(db.Model):
     )
 
     def serialize(self):
-        return {"id": self.id,
-                "email": self.email
-                }
+        return {
+            "id": self.id,
+            "email": self.email,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "is_active": self.is_active
+        }
 
 
 class Favourite(db.Model):
@@ -57,6 +61,27 @@ class Favourite(db.Model):
         ),
     )
 
+    def serialize(self):
+        data = {
+            "id": self.id,
+            "user_id": self.user_id,
+            "character_id": self.character_id,
+            "planet_id": self.planet_id,
+            "vehicle_id": self.vehicle_id
+        }
+
+        if self.character:
+            data["type"] = "character"
+            data["item"] = self.character.serialize()
+        elif self.planet:
+            data["type"] = "planet"
+            data["item"] = self.planet.serialize()
+        elif self.vehicle:
+            data["type"] = "vehicle"
+            data["item"] = self.vehicle.serialize()
+
+        return data
+
 
 class Planet(db.Model):
     __tablename__ = "planet"
@@ -67,10 +92,19 @@ class Planet(db.Model):
     diameter: Mapped[Optional[int]] = mapped_column(Integer)
     population: Mapped[Optional[int]] = mapped_column(Integer)
 
-    character: Mapped[Optional["Character"]] = relationship(
+    characters: Mapped[List["Character"]] = relationship(
         "Character",
         back_populates="homeland"
     )
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "climate": self.climate,
+            "diameter": self.diameter,
+            "population": self.population
+        }
 
 
 class Character(db.Model):
@@ -81,13 +115,31 @@ class Character(db.Model):
     gender: Mapped[Optional[str]] = mapped_column(String(50))
     skin_color: Mapped[Optional[str]] = mapped_column(String(50))
     hair_color: Mapped[Optional[str]] = mapped_column(String(50))
+
     planet_id: Mapped[int] = mapped_column(
         ForeignKey("planet.id"), nullable=False)
 
     homeland: Mapped["Planet"] = relationship(
-        "Planet", back_populates="character", uselist=False)
+        "Planet",
+        back_populates="characters"
+    )
+
     vehicles: Mapped[List["Vehicle"]] = relationship(
-        "Vehicle", back_populates="character")
+        "Vehicle",
+        back_populates="character"
+    )
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "gender": self.gender,
+            "skin_color": self.skin_color,
+            "hair_color": self.hair_color,
+            "planet_id": self.planet_id,
+            "homeworld": self.homeland.name if self.homeland else None,
+            "vehicles": [vehicle.serialize() for vehicle in self.vehicles]
+        }
 
 
 class Vehicle(db.Model):
@@ -101,5 +153,18 @@ class Vehicle(db.Model):
 
     character_id: Mapped[int] = mapped_column(
         ForeignKey("character.id"), nullable=False)
+
     character: Mapped["Character"] = relationship(
-        "Character", back_populates="vehicles")
+        "Character",
+        back_populates="vehicles"
+    )
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "passengers": self.passengers,
+            "cargo_capacity": self.cargo_capacity,
+            "crew": self.crew,
+            "character_id": self.character_id
+        }
